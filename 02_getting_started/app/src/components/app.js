@@ -34,9 +34,16 @@ class App extends React.Component {
       const svg = d3.select("#canvas");
       const rects = svg.selectAll("rect").data(data);
 
+      // setup y scale
+      const y = d3.scaleLinear()
+        .domain([0, data.reduce(
+          (acc, curr) => Math.max(acc, +curr.height), -1
+        )])
+        .range([0, 350]);
+
       rects.enter()
         .append("rect")
-          .attr("height", d => d.height)
+          .attr("height", d => y(d.height))
           .attr("width", 25)
           .attr("x", (d, i) => i * 50)
           .attr("y", 0)
