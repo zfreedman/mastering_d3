@@ -11,17 +11,21 @@ class App extends React.Component {
   }
 
   componentDidMount () {
-    this.doD3();
+    this.renderCircles();
   }
 
-  doD3 () {
+  renderCircles () {
+    const data = [...Array(10).keys()].map(e => e * 2);
+
     const svg = d3.select("#canvas");
-    const rect = svg.append("rect")
-      .attr("x", 25)
-      .attr("y", 5)
-      .attr("width", 150)
-      .attr("height", 50)
-      .attr("fill", "blue");
+    const circles = svg.selectAll("circle").data(data);
+
+    circles.enter()
+      .append("circle")
+        .attr("cx", (d, i) => i * 25)
+        .attr("cy", d => d)
+        .attr("r", d => d)
+        .attr("fill", "purple");
   }
 }
 
