@@ -5,7 +5,7 @@ class App extends React.Component {
   render () {
     return (
       <div>
-        <svg id="canvas" width="400" height="60" />
+        <svg id="canvas" width="400" height="400" />
       </div>
     );
   }
@@ -28,18 +28,19 @@ class App extends React.Component {
             located at app/ (so app/data/ages.csv is available)
     */
 
-    const data = d3.csv("http://localhost:8080/data/ages.csv").then(data => {
-      data.forEach(d => d.age = +d.age);
+    const data = d3.json("http://localhost:8080/data/buildings.json").then(data => {
+      data.forEach(d => d.height = +d.height);
 
       const svg = d3.select("#canvas");
-      const circles = svg.selectAll("circle").data(data);
+      const rects = svg.selectAll("rect").data(data);
 
-      circles.enter()
-        .append("circle")
-          .attr("cx", (d, i) => i * 50 + 25)
-          .attr("cy", 25)
-          .attr("r", d => d.age * 2)
-          .attr("fill", d => d.name === "Tony" ? "blue" : "purple");
+      rects.enter()
+        .append("rect")
+          .attr("height", d => d.height)
+          .attr("width", 25)
+          .attr("x", (d, i) => i * 50)
+          .attr("y", 0)
+          .attr("fill", "grey");
     }).catch(err => console.log(err));
 
   }
