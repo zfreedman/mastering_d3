@@ -29,11 +29,19 @@ class App extends React.Component {
     */
 
     const data = d3.csv("http://localhost:8080/data/ages.csv").then(data => {
-      console.log(data);
-    });
+      data.forEach(d => d.age = +d.age);
 
-    const svg = d3.select("#canvas");
-    const circles = svg.selectAll("circle").data(data);
+      const svg = d3.select("#canvas");
+      const circles = svg.selectAll("circle").data(data);
+
+      circles.enter()
+        .append("circle")
+          .attr("cx", (d, i) => i * 50 + 25)
+          .attr("cy", 25)
+          .attr("r", d => d.age * 2)
+          .attr("fill", d => d.name === "Tony" ? "blue" : "purple");
+    }).catch(err => console.log(err));
+
   }
 }
 
