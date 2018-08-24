@@ -4,8 +4,7 @@ import React from "react";
 class App extends React.Component {
   render () {
     return (
-      <div>
-        <svg id="canvas" width="400" height="400" />
+      <div id="svgTarget">
       </div>
     );
   }
@@ -15,6 +14,18 @@ class App extends React.Component {
   }
 
   renderCircles () {
+    const margin = { bottom: 100, left: 100, right: 10, top: 10 };
+
+    const groupHeight = 400 - margin.bottom - margin.top;
+    const groupWidth = 600 - margin.left - margin.right;
+
+    const svg = d3.select("#svgTarget")
+      .append("svg")
+        .attr("height", groupHeight + margin.bottom + margin.top)
+        .attr("width", groupWidth + margin.left + margin.right);
+
+    const g = svg.append("g")
+      .attr("transform", `translate(${margin.left}, ${margin.top})`);
     /*
       READ READ READ READ READ READ READ READ READ READ READ
 
@@ -31,23 +42,27 @@ class App extends React.Component {
     const data = d3.json("http://localhost:8080/data/buildings.json").then(data => {
       data.forEach(d => d.height = +d.height);
 
-      const svg = d3.select("#canvas");
-      const rects = svg.selectAll("rect").data(data);
+      // setup band scaleLinear
+      const x = d3.scaleBand()
+        .domain(data.map(d => d.name))
+        .range([0, groupWidth])
+        .paddingInner(0.3)
+        .paddingOuter(0.3);
 
       // setup y scale
       const y = d3.scaleLinear()
-        .domain([0, data.reduce(
-          (acc, curr) => Math.max(acc, +curr.height), -1
-        )])
-        .range([0, 350]);
+        .domain([0, d3.max(data, d => d.height)])
+        .range([0, groupHeight - 25]);
+
+      const rects = g.selectAll("rect").data(data);
 
       rects.enter()
         .append("rect")
-          .attr("height", d => y(d.height))
-          .attr("width", 25)
-          .attr("x", (d, i) => i * 50)
-          .attr("y", 0)
-          .attr("fill", "grey");
+        .attr("height", d => y(d.height))
+        .attr("width", x.bandwidth())
+        .attr("x", d => x(d.name))
+        .attr("y", 0)
+        .attr("fill", "grey");
     }).catch(err => console.log(err));
 
   }
