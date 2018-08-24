@@ -14,18 +14,39 @@ class App extends React.Component {
   }
 
   renderCircles () {
-    const margin = { bottom: 100, left: 100, right: 10, top: 10 };
+    const margin = { bottom: 150, left: 100, right: 10, top: 10 };
 
     const groupHeight = 400 - margin.bottom - margin.top;
     const groupWidth = 600 - margin.left - margin.right;
 
+    // canvas
     const svg = d3.select("#svgTarget")
       .append("svg")
         .attr("height", groupHeight + margin.bottom + margin.top)
         .attr("width", groupWidth + margin.left + margin.right);
 
+    // svg group for bars
     const g = svg.append("g")
       .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+    // labels
+    g.append("text")
+      .attr("class", "xAxisLabel")
+      .attr("x", groupWidth / 2)
+      .attr("y", groupHeight + 140)
+      .attr("font-size", 20)
+      .attr("text-anchor", "middle")
+      .text("Whe world's tallest buildings");
+
+    g.append("text")
+      .attr("class", "yAxisLabel")
+      .attr("x", -groupHeight / 2)
+      .attr("y", -60)
+      .attr("font-size", 20)
+      .attr("text-anchor", "middle")
+      .attr("transform", "rotate(-90)")
+      .text("Height (m)");
+
     /*
       READ READ READ READ READ READ READ READ READ READ READ
 
@@ -38,7 +59,6 @@ class App extends React.Component {
         4. the above step 3 will setup a server allowing CORS, with the root
             located at app/ (so app/data/ages.csv is available)
     */
-
     const data = d3.json("http://localhost:8080/data/buildings.json").then(data => {
       data.forEach(d => d.height = +d.height);
 
@@ -52,16 +72,35 @@ class App extends React.Component {
       // setup y scale
       const y = d3.scaleLinear()
         .domain([0, d3.max(data, d => d.height)])
-        .range([0, groupHeight - 25]);
+        .range([groupHeight, 0]);
 
+      // axis generators
+      const xAxis = d3.axisBottom(x);
+      g.append("g")
+        .attr("class", "xAxis")
+        .attr("transform", `translate(0, ${groupHeight})`)
+        .call(xAxis)
+        .selectAll("text")
+          .attr("y", 10)
+          .attr("x", -5)
+          .attr("text-anchor", "end")
+          .attr("transform", "rotate(-40)");
+
+      const yAxis = d3.axisLeft(y)
+        .ticks(3)
+        .tickFormat(d => `${d}m`);
+      g.append("g")
+        .attr("class", "yAxis")
+        .call(yAxis);
+
+      // bars
       const rects = g.selectAll("rect").data(data);
-
       rects.enter()
         .append("rect")
-        .attr("height", d => y(d.height))
+        .attr("height", d => groupHeight - y(d.height))
         .attr("width", x.bandwidth())
         .attr("x", d => x(d.name))
-        .attr("y", 0)
+        .attr("y", d => y(d.height))
         .attr("fill", "grey");
     }).catch(err => console.log(err));
 
