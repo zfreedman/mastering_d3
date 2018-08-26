@@ -77,6 +77,8 @@ class App extends React.Component {
   }
 
   initVisual () {
+    const continents = ["africa", "americas", "europe", "asia"]
+
     this.updateRate = 100;
 
     this.margin = { bottom: 100, left: 80, right: 20, top: 50 };
@@ -91,7 +93,7 @@ class App extends React.Component {
       .domain(this.getPopulationDomain())
       .range([5, 25]);
     this.color = d3.scaleOrdinal()
-      .domain(["europe", "asia", "americas", "africa"])
+      .domain(continents)
       .range(d3.schemeCategory10);
     this.x = d3.scaleLog()
       .domain([300, 150000])
@@ -135,6 +137,24 @@ class App extends React.Component {
       .attr("text-anchor", "middle")
       .attr("opacity", 0.5)
       .text(this.data[0].year);
+
+    const legend = g.append("g")
+      .attr("transform", `translate(${width - 10}, ${height - 125})`);
+    continents.forEach((c, i) => {
+      const legendRow = legend.append("g")
+        .attr("transform", `translate(0, ${i * 20})`);
+
+      legendRow.append("rect")
+        .attr("width", 10)
+        .attr("height", 10)
+        .attr("fill", this.color(c));
+      legendRow.append("text")
+        .attr("x", -10)
+        .attr("y", 10)
+        .attr("text-anchor", "end")
+        .style("text-transform", "capitalize")
+        .text(c);
+    });
   }
 
   updateVisual = data => {
