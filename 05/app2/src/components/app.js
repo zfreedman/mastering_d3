@@ -1,0 +1,184 @@
+import * as d3 from "d3";
+import React from "react";
+
+class App extends React.Component {
+  constructor (props) {
+    super(props);
+
+    this.state = {
+      dataFetched: false
+    };
+  }
+
+  render () {
+    return (
+      <div id="d3Target">
+        {!this.state.dataFetched ? "Loading" : ""}
+      </div>
+    );
+  }
+
+  componentDidMount () {
+    this.fetchData();
+  }
+
+  fetchData () {
+    d3.json("http://localhost:8080/data/data.json").then(data => {
+      this.data = data;
+      // console.log(data);
+
+      this.setState({ dataFetched: true, yearIndex: 0 });
+
+      this.initVisual();
+
+      d3.interval(() => {
+        const newYearIndex = (this.state.yearIndex + 1) % this.data.length;
+
+        this.setState({
+          yearIndex: newYearIndex
+        });
+
+        this.updateVisual(this.data[newYearIndex]);
+      }, this.updateRate);
+
+      const yearIndex = this.state.yearIndex;
+      this.updateVisual(this.data[yearIndex]);
+    });
+  }
+
+  getPopulationDomain () {
+    return this.data.reduce((largestRange, yearData) => {
+      const minAndMax = yearData.countries.reduce((currRange, countryData) => {
+        let min = currRange[0];
+        let max = currRange[1];
+
+        min = countryData.population !== null && +countryData.population < min
+          ? +countryData.population
+          : min;
+        max = countryData.population !== null && max < +countryData.population
+          ? +countryData.population
+          : max;
+
+        return [min, max];
+      }, [100000, 100000]);
+
+      let bestMin = minAndMax[0];
+      let bestMax = minAndMax[1];
+
+      bestMin = largestRange[0] < bestMin
+        ? largestRange[0]
+        : bestMin;
+      bestMax = bestMax < largestRange[1]
+        ? largestRange[1]
+        : bestMax;
+
+      return [bestMin, bestMax]
+    }, [100000, 100000]);
+  }
+
+  initVisual () {
+    this.updateRate = 100;
+
+    this.margin = { bottom: 100, left: 80, right: 20, top: 50 };
+    const { margin } = this;
+    const { bottom, left, right, top } = margin;
+
+    this.height = 400 - margin.top - margin.bottom;
+    this.width = 600 - margin.left - margin.right;
+    const { height, width } = this;
+
+    this.area = d3.scaleLinear()
+      .domain(this.getPopulationDomain())
+      .range([5, 25]);
+    this.color = d3.scaleOrdinal()
+      .domain(["europe", "asia", "americas", "africa"])
+      .range(d3.schemeCategory10);
+    this.x = d3.scaleLog()
+      .domain([300, 150000])
+      .range([0, this.width]);
+    this.y = d3.scaleLinear()
+      .domain([0, 90])
+      .range([this.height, 0]);
+
+    this.g = d3.select("#d3Target")
+      .append("svg")
+        .attr("width", width + left + right)
+        .attr("height", height + top + bottom)
+      .append("g")
+        .attr("transform", `translate(${left}, ${top})`);
+    const { g } = this;
+
+    this.xAxisGroup = g.append("g")
+      .attr("class", "xAxis")
+      .attr("transform", `translate(0, ${height})`);
+    this.yAxisGroup = g.append("g")
+      .attr("class", "yAxis");
+
+    g.append("text")
+      .attr("y", height + 50)
+      .attr("x", width / 2)
+      .attr("font-size", 20)
+      .attr("text-anchor", "middle")
+      .text("GDP Per Capita ($)");
+    g.append("text")
+        .attr("y", -60)
+        .attr("x", -height / 2)
+        .attr("font-size", 20)
+        .attr("text-anchor", "middle")
+        .attr("transform", "rotate(-90)")
+        .text("Life Expectancy (Years)");
+
+    this.yearLabel = g.append("text")
+      .attr("y", height - 10)
+      .attr("x", width * 6 / 7)
+      .attr("font-size", 48)
+      .attr("text-anchor", "middle")
+      .attr("opacity", 0.5)
+      .text(this.data[0].year);
+  }
+
+  updateVisual = data => {
+    const {
+      area, color, g, height, x, xAxisGroup, y, yAxisGroup, yearLabel
+    } = this;
+
+    const t = d3.transition().duration(this.updateRate);
+
+    const xAxisCall = d3.axisBottom(x)
+      .tickValues([400, 4000, 40000])
+      .tickFormat(n => `$${n}`);
+    xAxisGroup.call(xAxisCall);
+
+    const yAxisCall = d3.axisLeft(y);
+    yAxisGroup.call(yAxisCall);
+
+    // filter data for null values
+    let { countries, year } = data;
+    countries = countries.filter(c => c.income !== null && c.life_exp != null);
+
+    // JOIN new data
+    const circles = g.selectAll("circle")
+      .data(countries, d => d.country);
+
+    // EXIT old elements
+    circles.exit().remove();
+
+    // ENTER (and UPDATE, merge) new elements present in data
+    circles.enter()
+      .append("circle")
+        .attr("fill", d => color(d.continent))
+        // .attr("opacity", 0.5)
+        .merge(circles)
+        .transition(t)
+          .attr("cx", d => x(d.income))
+          .attr("cy", d => y(d.life_exp))
+          .attr("r", d => area(d.population));
+
+    // Update year Label
+    yearLabel
+      .transition(t)
+      .text(year);
+  }
+}
+
+export default App;
