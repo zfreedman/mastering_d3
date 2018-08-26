@@ -72,8 +72,6 @@ class App extends React.Component {
   }
 
   renderData () {
-    const { g, margin, width, height } = this;
-
     d3.json("http://localhost:8080/data/revenues.json").then(data => {
       this.dataA = data;
       this.dataB = [...data].slice(1);
@@ -118,39 +116,35 @@ class App extends React.Component {
 
     // Bars (d3 update pattern)
     // JOIN new data with old elements
-    const rects = g.selectAll("rect")
+    const circles = g.selectAll("circle")
       .data(data, d => d.month);
 
     // EXIT old elements not present in new data
-    rects.exit()
+    circles.exit()
         .attr("fill", "red")
       .transition(t)
-        .attr("y", y(0))
-        .attr("height", 0)
+        .attr("cy", y(0))
       .remove();
 
     // UPDATE old elements present in new data
-    // rects.transition(t)
+    // circles.transition(t)
     //   .attr("y", function(d){ return y(d[value]); })
     //   .attr("x", function(d){ return x(d.month) })
     //   .attr("height", function(d){ return height - y(d[value]); })
     //   .attr("width", x.bandwidth);
 
     // ENTER new elements present in new data
-    rects.enter()
-      .append("rect")
-        .attr("x", function(d){ return x(d.month) })
-        .attr("width", x.bandwidth)
+    circles.enter()
+      .append("circle")
+        .attr("cx", d => x(d.month) + x.bandwidth() / 2)
+        .attr("r", 5)
         .attr("fill", "grey")
-        .attr("y", y(0))
-        .attr("height", 0)
+        .attr("cy", y(0))
         // And UPDATE old elements present in data at the same time
-      .merge(rects)
+      .merge(circles)
       .transition(d3.transition)
-        .attr("y", function(d){ return y(d[value]); })
-        .attr("height", function(d){ return height - y(d[value]); })
-        .attr("x", d => x(d.month))
-        .attr("width", x.bandwidth);
+        .attr("cy", function(d){ return y(d[value]); })
+        .attr("cx", d => x(d.month) + x.bandwidth() / 2);
 
     this.yLabel.text(value[0].toUpperCase() + value.substr(1));
   }
