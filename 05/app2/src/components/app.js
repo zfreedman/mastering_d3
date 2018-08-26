@@ -1,5 +1,9 @@
 import * as d3 from "d3";
 import React from "react";
+import { renderToString } from "react-dom/server";
+import d3Tip from "d3-tip";
+
+import ToolTipDisplay from "components/toolTipDisplay";
 
 class App extends React.Component {
   constructor (props) {
@@ -138,6 +142,7 @@ class App extends React.Component {
       .attr("opacity", 0.5)
       .text(this.data[0].year);
 
+    // legend
     const legend = g.append("g")
       .attr("transform", `translate(${width - 10}, ${height - 125})`);
     continents.forEach((c, i) => {
@@ -155,11 +160,17 @@ class App extends React.Component {
         .style("text-transform", "capitalize")
         .text(c);
     });
+
+    // tool tip
+    this.tip = d3Tip()
+      .attr("class", "d3-tip")
+      .html(d => renderToString(<ToolTipDisplay data={d} />));
+    g.call(this.tip);
   }
 
   updateVisual = data => {
     const {
-      area, color, g, height, x, xAxisGroup, y, yAxisGroup, yearLabel
+      area, color, g, height, tip, x, xAxisGroup, y, yAxisGroup, yearLabel
     } = this;
 
     const t = d3.transition().duration(this.updateRate);
@@ -187,7 +198,9 @@ class App extends React.Component {
     circles.enter()
       .append("circle")
         .attr("fill", d => color(d.continent))
-        // .attr("opacity", 0.5)
+        .attr("opacity", 0.5)
+        .on("mouseover", tip.show)
+        .on("mouseout", tip.hide)
         .merge(circles)
         .transition(t)
           .attr("cx", d => x(d.income))
