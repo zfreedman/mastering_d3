@@ -2,6 +2,10 @@ import * as d3 from "d3";
 import React from "react";
 
 class App extends React.Component {
+  constructor (props) {
+    super(props);
+  }
+
   render () {
     return (
       <div id="svgTarget">
@@ -10,21 +14,33 @@ class App extends React.Component {
   }
 
   componentDidMount () {
+    this.initVisual();
     this.renderData();
   }
 
-  renderData () {
-    const margin = { left:80, right:20, top:50, bottom:100 };
+  initVisual () {
+    this.margin = { left:80, right:20, top:50, bottom:100 };
 
-    const width = 600 - margin.left - margin.right,
-        height = 400 - margin.top - margin.bottom;
+    this.width = 600 - this.margin.left - this.margin.right;
+    this.height = 400 - this.margin.top - this.margin.bottom;
 
-    const g = d3.select("#svgTarget")
+    this.x = d3.scaleBand()
+      .range([0, this.width])
+      .padding(0.2);
+
+    this.y = d3.scaleLinear()
+      .range([this.height, 0]);
+
+    this.g = d3.select("#svgTarget")
       .append("svg")
-          .attr("width", width + margin.left + margin.right)
-          .attr("height", height + margin.top + margin.bottom)
+        .attr("width", this.width + this.margin.left + this.margin.right)
+        .attr("height", this.height + this.margin.top + this.margin.bottom)
       .append("g")
-          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+          .attr("transform", "translate(" + this.margin.left + ", " + this.margin.top + ")");
+  }
+
+  renderData () {
+    const { g, margin, width, height } = this;
 
     // X Label
     g.append("text")
@@ -43,7 +59,7 @@ class App extends React.Component {
       .attr("transform", "rotate(-90)")
       .text("Revenue");
 
-    d3.json("http://localhost:8080/data/revenues.json").then(function(data){
+    d3.json("http://localhost:8080/data/revenues.json").then( data => {
       // console.log(data);
 
       // Clean data
@@ -51,43 +67,42 @@ class App extends React.Component {
         d.revenue = +d.revenue;
       });
 
-      // X Scale
-      const x = d3.scaleBand()
-        .domain(data.map(function(d){ return d.month }))
-        .range([0, width])
-        .padding(0.2);
+      d3.interval(() => {
+        this.updateVisual(data);
+      }, 1000);
+    });
+  }
 
-      // Y Scale
-      const y = d3.scaleLinear()
-        .domain([0, d3.max(data, function(d) { return d.revenue })])
-        .range([height, 0]);
+  updateVisual = data => {
+    const { g, x, y, height } = this;
 
-      // X Axis
-      const xAxisCall = d3.axisBottom(x);
-      g.append("g")
-        .attr("class", "x axis")
-        .attr("transform", "translate(0," + height +")")
-        .call(xAxisCall);
+    x.domain(data.map(function(d){ return d.month }));
+    y.domain([0, d3.max(data, function(d) { return d.revenue })]);
+    // X Axis
+    const xAxisCall = d3.axisBottom(x);
+    g.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height +")")
+      .call(xAxisCall);
 
-      // Y Axis
-      const yAxisCall = d3.axisLeft(y)
-        .tickFormat(function(d){ return "$" + d; });
+    // Y Axis
+    const yAxisCall = d3.axisLeft(y)
+      .tickFormat(function(d){ return "$" + d; });
       g.append("g")
         .attr("class", "y axis")
         .call(yAxisCall);
 
-      // Bars
-      const rects = g.selectAll("rect")
-        .data(data)
-
-      rects.enter()
-        .append("rect")
-          .attr("y", function(d){ return y(d.revenue); })
-          .attr("x", function(d){ return x(d.month) })
-          .attr("height", function(d){ return height - y(d.revenue); })
-          .attr("width", x.bandwidth)
-          .attr("fill", "grey");
-    })
+    // // Bars
+    // const rects = g.selectAll("rect")
+    //   .data(data)
+    //
+    // rects.enter()
+    //   .append("rect")
+    //     .attr("y", function(d){ return y(d.revenue); })
+    //     .attr("x", function(d){ return x(d.month) })
+    //     .attr("height", function(d){ return height - y(d.revenue); })
+    //     .attr("width", x.bandwidth)
+    //     .attr("fill", "grey");
   }
 }
 
