@@ -37,6 +37,13 @@ class App extends React.Component {
         .attr("height", this.height + this.margin.top + this.margin.bottom)
       .append("g")
           .attr("transform", "translate(" + this.margin.left + ", " + this.margin.top + ")");
+
+    this.xAxisGroup = this.g.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + this.height +")");
+
+    this.yAxisGroup = this.g.append("g")
+      .attr("class", "y axis");
   }
 
   renderData () {
@@ -70,27 +77,24 @@ class App extends React.Component {
       d3.interval(() => {
         this.updateVisual(data);
       }, 1000);
+      this.updateVisual(data);
     });
   }
 
   updateVisual = data => {
-    const { g, x, y, height } = this;
+    const { g, height, x, xAxisGroup, y, yAxisGroup } = this;
 
-    x.domain(data.map(function(d){ return d.month }));
-    y.domain([0, d3.max(data, function(d) { return d.revenue })]);
+    x.domain(data.map(d => d.month));
+    y.domain([0, d3.max(data, d => d.revenue )]);
+
     // X Axis
     const xAxisCall = d3.axisBottom(x);
-    g.append("g")
-      .attr("class", "x axis")
-      .attr("transform", "translate(0," + height +")")
-      .call(xAxisCall);
+    xAxisGroup.call(xAxisCall);
 
     // Y Axis
     const yAxisCall = d3.axisLeft(y)
-      .tickFormat(function(d){ return "$" + d; });
-      g.append("g")
-        .attr("class", "y axis")
-        .call(yAxisCall);
+      .tickFormat(d => "$" + d);
+    yAxisGroup.call(yAxisCall);
 
     // // Bars
     // const rects = g.selectAll("rect")
