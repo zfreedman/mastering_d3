@@ -4,6 +4,10 @@ import React from "react";
 class App extends React.Component {
   constructor (props) {
     super(props);
+
+    this.state = {
+      flag: true
+    };
   }
 
   render () {
@@ -16,6 +20,10 @@ class App extends React.Component {
   componentDidMount () {
     this.initVisual();
     this.renderData();
+  }
+
+  componentDidUpdate () {
+    this.updateVisual(this.data);
   }
 
   initVisual () {
@@ -44,48 +52,56 @@ class App extends React.Component {
 
     this.yAxisGroup = this.g.append("g")
       .attr("class", "y axis");
-  }
-
-  renderData () {
-    const { g, margin, width, height } = this;
 
     // X Label
-    g.append("text")
-      .attr("y", height + 50)
-      .attr("x", width / 2)
+    this.g.append("text")
+      .attr("y", this.height + 50)
+      .attr("x", this.width / 2)
       .attr("font-size", "20px")
       .attr("text-anchor", "middle")
       .text("Month");
 
     // Y Label
-    g.append("text")
+    this.yLabel = this.g.append("text")
       .attr("y", -60)
-      .attr("x", -(height / 2))
+      .attr("x", - (this.height / 2))
       .attr("font-size", "20px")
       .attr("text-anchor", "middle")
       .attr("transform", "rotate(-90)")
       .text("Revenue");
+  }
 
-    d3.json("http://localhost:8080/data/revenues.json").then( data => {
-      // console.log(data);
+  renderData () {
+    const { g, margin, width, height } = this;
+
+    d3.json("http://localhost:8080/data/revenues.json").then(data => {
+      this.data = data;
 
       // Clean data
       data.forEach(function(d) {
         d.revenue = +d.revenue;
+        d.profit = +d.profit;
       });
 
       d3.interval(() => {
-        this.updateVisual(data);
+        this.toggleFlag();
       }, 1000);
       this.updateVisual(data);
     });
   }
 
+  toggleFlag = () => {
+    this.setState({
+      flag: !this.state.flag
+    });
+  }
+
   updateVisual = data => {
     const { g, height, x, xAxisGroup, y, yAxisGroup } = this;
+    const value = this.state.flag ? "revenue" : "profit";
 
     x.domain(data.map(d => d.month));
-    y.domain([0, d3.max(data, d => d.revenue )]);
+    y.domain([0, d3.max(data, d => d[value])]);
 
     // X Axis
     const xAxisCall = d3.axisBottom(x);
@@ -96,19 +112,31 @@ class App extends React.Component {
       .tickFormat(d => "$" + d);
     yAxisGroup.call(yAxisCall);
 
-    // Bars
+    // Bars (d3 update pattern)
+    // JOIN new data with old elements
     const rects = g.selectAll("rect")
       .data(data);
 
+    // EXIT old elements not present in new data
+    rects.exit().remove();
+
+    // UPDATE old elements present in new data
+    rects
+      .attr("y", function(d){ return y(d[value]); })
+      .attr("x", function(d){ return x(d.month) })
+      .attr("height", function(d){ return height - y(d[value]); })
+      .attr("width", x.bandwidth);
+
+    // ENTRE new elements present in new data
     rects.enter()
       .append("rect")
-        .attr("y", function(d){ return y(d.revenue); })
+        .attr("y", function(d){ return y(d[value]); })
         .attr("x", function(d){ return x(d.month) })
-        .attr("height", function(d){ return height - y(d.revenue); })
+        .attr("height", function(d){ return height - y(d[value]); })
         .attr("width", x.bandwidth)
         .attr("fill", "grey");
 
-    console.log(rects);
+    this.yLabel.text(value[0].toUpperCase() + value.substr(1));
   }
 }
 
