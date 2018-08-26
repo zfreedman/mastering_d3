@@ -96,17 +96,19 @@ class App extends React.Component {
       .tickFormat(d => "$" + d);
     yAxisGroup.call(yAxisCall);
 
-    // // Bars
-    // const rects = g.selectAll("rect")
-    //   .data(data)
-    //
-    // rects.enter()
-    //   .append("rect")
-    //     .attr("y", function(d){ return y(d.revenue); })
-    //     .attr("x", function(d){ return x(d.month) })
-    //     .attr("height", function(d){ return height - y(d.revenue); })
-    //     .attr("width", x.bandwidth)
-    //     .attr("fill", "grey");
+    // Bars
+    const rects = g.selectAll("rect")
+      .data(data);
+
+    rects.enter()
+      .append("rect")
+        .attr("y", function(d){ return y(d.revenue); })
+        .attr("x", function(d){ return x(d.month) })
+        .attr("height", function(d){ return height - y(d.revenue); })
+        .attr("width", x.bandwidth)
+        .attr("fill", "grey");
+
+    console.log(rects);
   }
 }
 
