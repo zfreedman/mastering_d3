@@ -3,9 +3,10 @@ Coursework for a D3 course hosted on Udemy
 
 ## d3 and local files
 In order for d3 local file reads to work (d3.csv), make sure to do the following steps (from inside any 0x_subdir_name/app directory):
-  1. npm install (make sure http-server is installed (package.json) as a dev dependency for local files)
-  2. from another terminal/command line window, navigate to 0x_subdir_name/app
-  3. once in 0x_subdir_name/app, `run http-server ./ --cors="\*"`
+  1. npm install
+  2. npm install -g http-server (make sure this is installed to serve local files)
+  3. from another terminal/command line window, navigate to 0x_subdir_name/app
+  4. once in 0x_subdir_name/app, `run http-server ./ --cors="\*"`
 
 The above step 3 will setup a server allowing CORS, with the root located at 0x_subdir_name/app/ (so app/data/ages.csv is available in mastering_d3/02_getting_started, for example)
 
