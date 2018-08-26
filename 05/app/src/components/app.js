@@ -23,7 +23,7 @@ class App extends React.Component {
   }
 
   componentDidUpdate () {
-    this.updateVisual(this.data);
+    this.updateVisual(this.state.flag ? this.dataA : this.dataB);
   }
 
   initVisual () {
@@ -75,7 +75,8 @@ class App extends React.Component {
     const { g, margin, width, height } = this;
 
     d3.json("http://localhost:8080/data/revenues.json").then(data => {
-      this.data = data;
+      this.dataA = data;
+      this.dataB = [...data].slice(1);
 
       // Clean data
       data.forEach(function(d) {
@@ -103,38 +104,53 @@ class App extends React.Component {
     x.domain(data.map(d => d.month));
     y.domain([0, d3.max(data, d => d[value])]);
 
+    // transition variable
+    const t = d3.transition().duration(750);
+
     // X Axis
     const xAxisCall = d3.axisBottom(x);
-    xAxisGroup.call(xAxisCall);
+    xAxisGroup.transition(t).call(xAxisCall);
 
     // Y Axis
     const yAxisCall = d3.axisLeft(y)
       .tickFormat(d => "$" + d);
-    yAxisGroup.call(yAxisCall);
+    yAxisGroup.transition(t).call(yAxisCall);
 
     // Bars (d3 update pattern)
     // JOIN new data with old elements
     const rects = g.selectAll("rect")
-      .data(data);
+      .data(data, d => d.month);
 
     // EXIT old elements not present in new data
-    rects.exit().remove();
+    rects.exit()
+        .attr("fill", "red")
+      .transition(t)
+        .attr("y", y(0))
+        .attr("height", 0)
+      .remove();
 
     // UPDATE old elements present in new data
-    rects
-      .attr("y", function(d){ return y(d[value]); })
-      .attr("x", function(d){ return x(d.month) })
-      .attr("height", function(d){ return height - y(d[value]); })
-      .attr("width", x.bandwidth);
+    // rects.transition(t)
+    //   .attr("y", function(d){ return y(d[value]); })
+    //   .attr("x", function(d){ return x(d.month) })
+    //   .attr("height", function(d){ return height - y(d[value]); })
+    //   .attr("width", x.bandwidth);
 
-    // ENTRE new elements present in new data
+    // ENTER new elements present in new data
     rects.enter()
       .append("rect")
-        .attr("y", function(d){ return y(d[value]); })
         .attr("x", function(d){ return x(d.month) })
-        .attr("height", function(d){ return height - y(d[value]); })
         .attr("width", x.bandwidth)
-        .attr("fill", "grey");
+        .attr("fill", "grey")
+        .attr("y", y(0))
+        .attr("height", 0)
+        // And UPDATE old elements present in data at the same time
+      .merge(rects)
+      .transition(d3.transition)
+        .attr("y", function(d){ return y(d[value]); })
+        .attr("height", function(d){ return height - y(d[value]); })
+        .attr("x", d => x(d.month))
+        .attr("width", x.bandwidth);
 
     this.yLabel.text(value[0].toUpperCase() + value.substr(1));
   }
