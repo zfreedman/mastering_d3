@@ -4,49 +4,56 @@ import { renderToString } from "react-dom/server";
 import d3Tip from "d3-tip";
 
 import ToolTipDisplay from "components/toolTipDisplay";
+import VisualControl from "components/visualControl";
 
 class App extends React.Component {
   constructor (props) {
     super(props);
 
     this.state = {
-      dataFetched: false
+      continentFilter: "all",
+      dataFetched: false,
+      interval: undefined,
     };
   }
 
   render () {
+    const { continentFilter, interval } = this.state;
     return (
-      <div id="d3Target">
-        {!this.state.dataFetched ? "Loading" : ""}
+      <div className="container">
+        <VisualControl
+          continentFilter={continentFilter}
+          handleContinentFilterChange={this.handleContinentFilterChange}
+          handlePlayToggle={this.handlePlayToggle}
+          handleReset={this.handleReset}
+          playing={interval !== undefined}
+        />
+
+        <div className="row">
+          <div className="col-md-12">
+            <div id="d3Target">
+              {!this.state.dataFetched ? "Loading" : ""}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   componentDidMount () {
-    this.fetchData();
+    this.fetchAndPlaceData();
   }
 
-  fetchData () {
+  fetchAndPlaceData () {
     d3.json("http://localhost:8080/data/data.json").then(data => {
       this.data = data;
-      // console.log(data);
 
-      this.setState({ dataFetched: true, yearIndex: 0 });
+      const newYearIndex = 0;
+      this.setState({ dataFetched: true, yearIndex: newYearIndex });
 
       this.initVisual();
 
-      d3.interval(() => {
-        const newYearIndex = (this.state.yearIndex + 1) % this.data.length;
-
-        this.setState({
-          yearIndex: newYearIndex
-        });
-
-        this.updateVisual(this.data[newYearIndex]);
-      }, this.updateRate);
-
-      const yearIndex = this.state.yearIndex;
-      this.updateVisual(this.data[yearIndex]);
+      this.updateVisual(this.data[newYearIndex], this.state.continentFilter);
     });
   }
 
@@ -79,6 +86,41 @@ class App extends React.Component {
       return [bestMin, bestMax]
     }, [100000, 100000]);
   }
+
+  handleContinentFilterChange = continentFilter => {
+    this.setState({
+      continentFilter,
+    });
+
+    // update visual if not playing
+    const { interval, yearIndex } = this.state;
+    const playing = interval !== undefined;
+    if (!playing)
+      this.updateVisual(this.data[yearIndex], continentFilter);
+  };
+
+  handlePlayToggle = () => {
+    const { interval } = this.state;
+    const newInterval = interval === undefined
+      ? setInterval(this.stepVisual, this.updateRate)
+      : clearInterval(interval);
+
+    this.setState({
+      interval: newInterval,
+    });
+  };
+
+  handleReset = () => {
+    const newYearIndex = 0;
+    const { continentFilter, interval } = this.state;
+
+    this.setState({
+      interval: clearInterval(interval),
+      yearIndex: newYearIndex,
+    });
+
+    this.updateVisual(this.data[newYearIndex], continentFilter);
+  };
 
   initVisual () {
     const continents = ["africa", "americas", "europe", "asia"]
@@ -168,7 +210,18 @@ class App extends React.Component {
     g.call(this.tip);
   }
 
-  updateVisual = data => {
+  stepVisual = () => {
+    const { continentFilter, yearIndex } = this.state;
+    const newYearIndex = (yearIndex + 1) % this.data.length;
+
+    this.setState({
+      yearIndex: newYearIndex
+    });
+
+    this.updateVisual(this.data[newYearIndex], continentFilter);
+  }
+
+  updateVisual = (data, continentFilter) => {
     const {
       area, color, g, height, tip, x, xAxisGroup, y, yAxisGroup, yearLabel
     } = this;
@@ -185,7 +238,15 @@ class App extends React.Component {
 
     // filter data for null values
     let { countries, year } = data;
-    countries = countries.filter(c => c.income !== null && c.life_exp != null);
+    countries = countries.filter(c => {
+
+      const continentPass = (
+        continentFilter === "all" || c.continent === continentFilter
+      );
+
+      return c.income !== null && c.life_exp != null && continentPass;
+    });
+
 
     // JOIN new data
     const circles = g.selectAll("circle")
