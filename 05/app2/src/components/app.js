@@ -40,7 +40,7 @@ class App extends React.Component {
           playing={interval !== undefined}
           year={
             this.state.yearIndex !== undefined
-              ? this.data[this.state.yearIndex].year
+              ? +this.data[this.state.yearIndex].year
               : ""
             }
         />
