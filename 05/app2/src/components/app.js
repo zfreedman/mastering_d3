@@ -1,7 +1,7 @@
 import * as d3 from "d3";
+import d3Tip from "d3-tip";
 import React from "react";
 import { renderToString } from "react-dom/server";
-import d3Tip from "d3-tip";
 
 import ToolTipDisplay from "components/toolTipDisplay";
 import VisualControl from "components/visualControl";
@@ -26,13 +26,28 @@ class App extends React.Component {
           handleContinentFilterChange={this.handleContinentFilterChange}
           handlePlayToggle={this.handlePlayToggle}
           handleReset={this.handleReset}
+          handleSetYear={this.handleSetYear}
+          maxYear={
+            this.data !== undefined
+              ? +this.data[this.data.length - 1].year
+              : -1
+          }
+          minYear={
+            this.data !== undefined
+              ? +this.data[0].year
+              : -1
+          }
           playing={interval !== undefined}
+          year={
+            this.state.yearIndex !== undefined
+              ? this.data[this.state.yearIndex].year
+              : ""
+            }
         />
 
         <div className="row">
           <div className="col-md-12">
             <div id="d3Target">
-              {!this.state.dataFetched ? "Loading" : ""}
             </div>
           </div>
         </div>
@@ -120,6 +135,14 @@ class App extends React.Component {
     });
 
     this.updateVisual(this.data[newYearIndex], continentFilter);
+  };
+
+  handleSetYear = yearIndex => {
+    this.setState({
+      yearIndex
+    });
+
+    this.updateVisual(this.data[yearIndex], this.state.continentFilter);
   };
 
   initVisual () {
